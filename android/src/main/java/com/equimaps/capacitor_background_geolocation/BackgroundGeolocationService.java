@@ -76,6 +76,9 @@ public class BackgroundGeolocationService extends Service {
 
     // Handles requests from the activity.
     public class LocalBinder extends Binder {
+
+        private Boolean hasWatcher = false;
+
         void addWatcher(
                 final String id,
                 Notification backgroundNotification,
@@ -127,6 +130,24 @@ public class BackgroundGeolocationService extends Service {
                         null
                 );
             } catch (SecurityException ignore) {}
+
+            if (!hasWatcher) {
+                Notification notification = getNotification();
+                if (notification != null) {
+                    try {
+                        // Android 12 has a bug
+                        // (https://issuetracker.google.com/issues/229000935)
+                        // whereby it mistakenly thinks the app is in the
+                        // foreground at this point, even though it is not. This
+                        // causes a ForegroundServiceStartNotAllowedException to be
+                        // raised, crashing the app unless we suppress it here.
+                        // See issue #86.
+                        startForeground(NOTIFICATION_ID, notification);
+                    } catch (Exception exception) {
+                        Logger.error("Failed to start service", exception);
+                    }
+                }
+            }
         }
 
         void removeWatcher(String id) {
@@ -136,6 +157,7 @@ public class BackgroundGeolocationService extends Service {
                     watchers.remove(watcher);
                     if (getNotification() == null) {
                         stopForeground(true);
+                        hasWatcher = false;
                     }
                     return;
                 }
@@ -156,25 +178,25 @@ public class BackgroundGeolocationService extends Service {
         }
 
         void onActivityStarted() {
-            stopForeground(true);
+//            stopForeground(true);
         }
 
         void onActivityStopped() {
-            Notification notification = getNotification();
-            if (notification != null) {
-                try {
-                    // Android 12 has a bug
-                    // (https://issuetracker.google.com/issues/229000935)
-                    // whereby it mistakenly thinks the app is in the
-                    // foreground at this point, even though it is not. This
-                    // causes a ForegroundServiceStartNotAllowedException to be
-                    // raised, crashing the app unless we suppress it here.
-                    // See issue #86.
-                    startForeground(NOTIFICATION_ID, notification);
-                } catch (Exception exception) {
-                    Logger.error("Failed to start service", exception);
-                }
-            }
+//            Notification notification = getNotification();
+//            if (notification != null) {
+//                try {
+//                    // Android 12 has a bug
+//                    // (https://issuetracker.google.com/issues/229000935)
+//                    // whereby it mistakenly thinks the app is in the
+//                    // foreground at this point, even though it is not. This
+//                    // causes a ForegroundServiceStartNotAllowedException to be
+//                    // raised, crashing the app unless we suppress it here.
+//                    // See issue #86.
+//                    startForeground(NOTIFICATION_ID, notification);
+//                } catch (Exception exception) {
+//                    Logger.error("Failed to start service", exception);
+//                }
+//            }
         }
 
         void stopService() {
